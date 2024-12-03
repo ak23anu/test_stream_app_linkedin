@@ -8,7 +8,7 @@ from linkedin_api import Linkedin
 # Title of the application
 st.title("LinkedIn profile verification app.")
 
-li_username = "hemaho8947@nausard.com"
+li_username = "beqeqj9upd@vafyxh.com"
 li_password = "Simform@123"
 
 
