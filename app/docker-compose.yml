@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    networks:
+      - app-network
+    ports:
+      - "8501:8501"  # Streamlit
+
+    restart: always
+
+  tiny_proxy:
+    build:
+      context: .
+      dockerfile: DockerProxy.docker
+    networks:
+      - app-network
+    ports:
+      - "7777:7777"  # Proxy
+    restart: always
+
+networks:
+  app-network:
+    driver: bridge

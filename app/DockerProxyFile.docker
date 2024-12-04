@@ -1,0 +1,14 @@
+# Use a base image with a minimal OS, such as Alpine Linux
+FROM alpine:latest
+
+# Install Tinyproxy
+RUN apk update && apk add tinyproxy
+
+# Copy the Tinyproxy configuration file
+COPY tinyproxy.conf /etc/tinyproxy/tinyproxy.conf
+
+# Expose the proxy server port
+EXPOSE 8888
+
+# Start Tinyproxy
+CMD ["tinyproxy", "-d"]

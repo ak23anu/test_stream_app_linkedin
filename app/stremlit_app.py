@@ -1,10 +1,72 @@
 import validators
 import requests
 import re
+import json
 import streamlit as st
 from urllib.parse import urlparse
 from linkedin_api import Linkedin
+from linkedin_api.client import Client, ChallengeException, UnauthorizedException
 
+def authenticate(self, username: str, password: str):
+    if self._use_cookie_cache:
+        self.logger.debug("Attempting to use cached cookies")
+        cookies = self._cookie_repository.get(username)
+        if cookies:
+            self.logger.debug("Using cached cookies")
+            self._set_session_cookies(cookies)
+            self._fetch_metadata()
+            return
+
+    try:
+        self._do_authentication_request(username, password)
+        self._fetch_metadata()
+    except ChallengeException as e:
+        self.logger.error(f"Login challenge detected: {str(e)}")
+        # Inform the user or retry the login after clearing cookies
+        self.handle_challenge(username)
+    except UnauthorizedException as e:
+        self.logger.error("Unauthorized, please check your credentials.")
+    except Exception as e:
+        self.logger.error(f"An error occurred: {str(e)}")
+
+
+def handle_challenge(self, username: str):
+    # Manually delete the cookies file for the user
+    cookie_file = os.path.join(self._cookie_repository.cookies_dir, f"{username}_cookies.json")
+    if os.path.exists(cookie_file):
+        os.remove(cookie_file)
+        self.logger.info(f"Cookies for {username} have been cleared.")
+
+    # Prompt the user to log out and log in manually
+    self.logger.info("Please log out from LinkedIn in your browser, clear cookies, and try again.")
+
+import os
+
+class CookieRepository:
+    def __init__(self, cookies_dir: str = ""):
+        self.cookies_dir = cookies_dir
+
+    def get(self, username: str):
+        cookie_file = os.path.join(self.cookies_dir, f"{username}_cookies.json")
+        if os.path.exists(cookie_file):
+            with open(cookie_file, 'r') as f:
+                return json.load(f)
+        return None
+
+    def save(self, cookies, username: str):
+        cookie_file = os.path.join(self.cookies_dir, f"{username}_cookies.json")
+        with open(cookie_file, 'w') as f:
+            json.dump(cookies, f)
+
+    def clear(self, username: str):
+        cookie_file = os.path.join(self.cookies_dir, f"{username}_cookies.json")
+        if os.path.exists(cookie_file):
+            os.remove(cookie_file)
+            print(f"Cookies for {username} have been cleared.")
+
+
+setattr(Client, "handle_challenge", handle_challenge)
+Client.authenticate = authenticate
 # Title of the application
 st.title("LinkedIn profile verification app.")
 
@@ -205,7 +267,10 @@ class DummyApi:
 api = DummyApi()
 
 if "api_class" not in st.session_state:
-    api = Linkedin(li_username, li_password)
+    proxies = {
+
+    }
+    api = Linkedin(li_username, li_password, proxies=proxies)
     st.session_state["api_class"] = api
     st.session_state["logged_in"] = True
 
@@ -293,9 +358,6 @@ if submit_button:
             st.error("No Api class set")
             api_class = DummyApi()
         response = api_class.get_profile(public_id=public_id)
-        import ipdb
-
-        ipdb.set_trace()
         # get_profile_contact_info
         # get_profile_posts
         with st.success("Profile match"):
