@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from linkedin_api import Linkedin
 from linkedin_api.client import Client, ChallengeException, UnauthorizedException
 
+import os
+
 def authenticate(self, username: str, password: str):
     if self._use_cookie_cache:
         self.logger.debug("Attempting to use cached cookies")
@@ -70,8 +72,9 @@ Client.authenticate = authenticate
 # Title of the application
 st.title("LinkedIn profile verification app.")
 
-li_username = "beqeqj9upd@vafyxh.com"
-li_password = "Simform@123"
+import os
+li_username = os.getenv("USERNAME")
+li_password = os.getenv("PASSWORD")
 
 
 def verify_name_location(first_name, last_name, location_name):
@@ -360,6 +363,8 @@ if submit_button:
         response = api_class.get_profile(public_id=public_id)
         # get_profile_contact_info
         # get_profile_posts
+        import ipdb
+        ipdb.set_trace()
         with st.success("Profile match"):
             len_validation, validated_response = validate_profile_data(response)
             success_count = validated_response.count(True)
