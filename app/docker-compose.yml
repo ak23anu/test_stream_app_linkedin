@@ -5,12 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-
     networks:
       - app-network
     ports:
       - "8501:8501"  # Streamlit
-
     restart: always
 
   tiny_proxy:
@@ -22,6 +20,15 @@ services:
     ports:
       - "7777:7777"  # Proxy
     restart: always
+
+  redis_client:
+    image: redis:alpine
+    networks:
+      - app-network
+    ports:
+      - "6379:6379"  # Redis
+    restart: always
+
 
 networks:
   app-network:

@@ -1,3 +1,6 @@
+import time
+import redis
+import pickle
 import validators
 import requests
 import re
@@ -69,12 +72,13 @@ class CookieRepository:
 
 setattr(Client, "handle_challenge", handle_challenge)
 Client.authenticate = authenticate
+Client.AUTH_REQUEST_HEADERS = {     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Safari/537.36',     'referer': 'https://linkedin.com',     'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',     'accept-encoding': 'gzip, deflate, br',     'accept-language': 'en-US,en;q=0.8',     'cache-control': 'no-cache',     'pragma': 'no-cache',     'upgrade-insecure-requests': '1',      }
 # Title of the application
 st.title("LinkedIn profile verification app.")
 
 import os
-li_username = os.getenv("USERNAME")
-li_password = os.getenv("PASSWORD")
+li_username = "simform.akash@gmail.com"
+li_password = "Simform@123"
 
 
 def verify_name_location(first_name, last_name, location_name):
@@ -269,11 +273,37 @@ class DummyApi:
 
 api = DummyApi()
 
+
+redis_client = redis.StrictRedis(host="redis_client", port=6379, db=0)
+TTL  = 4 * 60  * 60
+def create_or_get_linkedin_object(email, password):
+    """Create or retrieve a Linkedin object from Redis."""
+    linkedin_obj = get_linkedin_object(email)
+    if not linkedin_obj:
+        linkedin_obj = Linkedin(email, password)
+        save_linkedin_object(email, linkedin_obj)
+    return linkedin_obj
+
+def save_linkedin_object(identifier, linkedin_object):
+    """
+    Serialize and save the Linkedin object in Redis with a 4-hour TTL.
+    """
+    serialized_object = pickle.dumps(linkedin_object)
+    redis_client.setex(identifier, TTL, serialized_object)
+
+def get_linkedin_object(identifier):
+    """
+    Retrieve the Linkedin object from Redis if it exists.
+    """
+    serialized_object = redis_client.get(identifier)
+    if serialized_object:
+        return pickle.loads(serialized_object)
+    return None
 if "api_class" not in st.session_state:
     proxies = {
 
     }
-    api = Linkedin(li_username, li_password, proxies=proxies)
+    api = create_or_get_linkedin_object(email=li_username, password=li_password)
     st.session_state["api_class"] = api
     st.session_state["logged_in"] = True
 
@@ -360,19 +390,22 @@ if submit_button:
         if not api_class:
             st.error("No Api class set")
             api_class = DummyApi()
+
+        time.sleep(40)
         response = api_class.get_profile(public_id=public_id)
         # get_profile_contact_info
         # get_profile_posts
-        import ipdb
-        ipdb.set_trace()
+
         with st.success("Profile match"):
             len_validation, validated_response = validate_profile_data(response)
             success_count = validated_response.count(True)
             display_average_message(total_value=len_validation, actual_value=success_count, pop_message="Profile")
         with st.success("Post match"):
+            time.sleep(40)
             profile_post_count = api_class.get_profile_posts(public_id=public_id, post_count=10)
             display_average_message(total_value=10, actual_value=len(profile_post_count), pop_message="Posts")
         with st.success("Contact Info"):
+            time.sleep(40)
             personal_information = api_class.get_profile_contact_info(public_id=public_id)
             info_count = 0
             for each_infor in personal_information:
